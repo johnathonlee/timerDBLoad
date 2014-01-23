@@ -16,16 +16,11 @@
  */
 package com.redhat.gss.timers.dbload;
 
-import java.io.IOException;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.Iterator;
-import java.util.List;
 
 import javax.ejb.Schedule;
 import javax.ejb.Singleton;
@@ -34,28 +29,17 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 import javax.sql.DataSource;
 
-import org.jboss.as.controller.client.ModelControllerClient;
-import org.jboss.as.controller.client.OperationBuilder;
-import org.jboss.as.controller.client.helpers.ClientConstants;
-import org.jboss.dmr.ModelNode;
-
 /**
- * Sample using the EJB's @Schedule and Native Management API for Transaction
- * removal.
- * 
- * Note that arbitrarily removing entries in the local transaction store can
- * result in recoverable transactions being lost
+ * Sample using the EJB's @Schedule to run a simple Query
  * 
  * @author <a href="mailto:jolee@redhat.com">Johnathon Lee</a>
  */
 @Singleton
 public class TimerDBLoad {
 
-	ModelControllerClient client = null;
-
-	// For time-saving purposes of the sample this is set to run every 5 seconds
-	@Schedule(second = "*/5", minute = "*", hour = "*", persistent = false)
-	public void executeSQL() {
+	// For time-saving purposes of the sample this is set to run every 35 seconds
+	@Schedule(second = "*/35", minute = "*", hour = "*", persistent = false)
+	public void executeSQL() throws SQLException {
 
 	    DataSource ds = null;
 	    Connection conn = null;
@@ -69,55 +53,23 @@ public class TimerDBLoad {
 	      if (ds != null) {
 	        conn = ds.getConnection();
 	        stmt = conn.createStatement();
-	        result = stmt.executeQuery("select * from ALL_TAB_COLUMNS");
+	        result = stmt.executeQuery("select * from BEANONE");
 	       }
-	     }
-	     catch (SQLException e) {
-	        e.printStackTrace();
-	        System.out.println("Error occurred " + e);
-	      } catch (NamingException e) {
-			// TODO Auto-generated catch block
+	     } catch (SQLException e) {
+	        System.out.println("----------------------------->Error occurred " + e.getErrorCode());
+	    } catch (NamingException e) {
 			e.printStackTrace();
+		 } finally {
+		     try {
+			       if (stmt != null){
+			        stmt.close();
+			       }
+			       } catch (SQLException e) {}
+			       try {
+			        if (conn != null){
+			         conn.close();
+			       }
+			       } catch (SQLException e) {}
 		}
-	      int columns=0;
-	      try {
-	        rsmd = result.getMetaData();
-	        columns = rsmd.getColumnCount();
-	      }
-	      catch (SQLException e) {
-	         System.out.println("Error occurred " + e);
-	      }
-
-	      // write out the header cells containing the column labels
-	      try {
-	         for (int i=1; i<=columns; i++) {
-	              
-	         }
-	         // now write out one row for each entry in the database table
-	         while (result.next()) {
-	            for (int i=1; i<=columns; i++) {
-	            	System.out.println(rsmd.getColumnLabel(i) + ":" + result.getString(i));
-	            }
-	         }
-	 
-	         // close the connection, resultset, and the statement
-	         result.close();
-	         stmt.close();
-	         conn.close();
-	      } // end of the try block
-	      catch (SQLException e) {
-	         System.out.println("Error " + e);
-	      }
-	      // ensure everything is closed
-	    finally {
-	     try {
-	       if (stmt != null)
-	        stmt.close();
-	       }  catch (SQLException e) {}
-	       try {
-	        if (conn != null)
-	         conn.close();
-	        } catch (SQLException e) {}
-	    }
 	}
 }
